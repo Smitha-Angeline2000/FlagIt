@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>FlagIt</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0; padding: 0;
+      display: flex; flex-direction: column; align-items: center;
+      background: #f0f0f0;
+    }
+    h1 {
+      margin: 20px 0 10px 0;
+      font-size: 2em;
+      color: #333;
+    }
+    #map {
+      width: 90vw;
+      height: 60vh;
+      border: 2px solid #444;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    #confirmationBox, #reportProblemBox {
+      width: 90vw;
+      max-width: 600px;
+      margin-top: 15px;
+      background: #fff;
+      padding: 15px 20px;
+      border-radius: 5px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.2);
+    }
+    #confirmationBox {
+      display: none;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 8px 14px;
+      margin: 5px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 1em;
+    }
+    button.confirm {
+      background-color: #28a745;
+      color: white;
+    }
+    button.undo {
+      background-color: #dc3545;
+      color: white;
+    }
+    label {
+      font-weight: bold;
+      margin-top: 10px;
+      display: block;
+    }
+    select, textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      font-size: 1em;
+      box-sizing: border-box;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>FlagIt</h1>
+
+  <div id="map"></div>
+
+  <div id="confirmationBox">
+    <p>Do you want to tag this location?</p>
+    <button class="confirm">Yes, tag it</button>
+    <button class="undo">Undo</button>
+  </div>
+
+  <div id="reportProblemBox" style="display:none;">
+    <label for="problemType">Select the type of problem:</label>
+    <select id="problemType" required>
+      <option value="" disabled selected>Choose one</option>
+      <option value="pothole">Pothole</option>
+      <option value="streetlight">Streetlight Issue</option>
+      <option value="garbage">Garbage / Waste</option>
+      <option value="water_leak">Other</option>
+    </select>
+
+    <label for="problemDescription">Describe the problem:</label>
+    <textarea id="problemDescription" placeholder="Explain the issue here..." required></textarea>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // Initialize the map centered on India with zoom limits
+    var map = L.map('map', {
+      center: [20.5937, 78.9629], // center of India approx
+      zoom: 5,
+      minZoom: 5,
+      maxZoom: 18,
+      zoomControl: true,
+    });
+
+    
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    var marker = null;
+    var clickedLatLng = null;
+
+    var confirmationBox = document.getElementById('confirmationBox');
+    var reportProblemBox = document.getElementById('reportProblemBox');
+    var confirmButton = confirmationBox.querySelector('.confirm');
+    var undoButton = confirmationBox.querySelector('.undo');
+
+    // On map click, show confirmation block
+    map.on('click', function(e) {
+      clickedLatLng = e.latlng;
+      confirmationBox.style.display = 'block';
+      reportProblemBox.style.display = 'none';
+      
+      // If marker exists from previous, remove it
+      if (marker) {
+        map.removeLayer(marker);
+        marker = null;
+      }
+    });
+
+    // Confirm button adds marker and shows problem reporting form
+    confirmButton.addEventListener('click', function() {
+      if (clickedLatLng) {
+        marker = L.marker(clickedLatLng).addTo(map);
+        confirmationBox.style.display = 'none';
+        reportProblemBox.style.display = 'block';
+
+        // Optional: show popup with reverse geocoded address using Geoapify
+        fetch(https://api.geoapify.com/v1/geocode/reverse?lat=${clickedLatLng.lat}&lon=${clickedLatLng.lng}&apiKey=57692846620241809ef5c9f111df0247)
+          .then(res => res.json())
+          .then(data => {
+            if (data.features && data.features.length > 0) {
+              var address = data.features[0].properties.formatted;
+              marker.bindPopup(address).openPopup();
+              console.log('Address:', address);
+            }
+          }).catch(console.error);
+      }
+    });
+
+    // Undo button hides confirmation and removes marker if any
+    undoButton.addEventListener('click', function() {
+      confirmationBox.style.display = 'none';
+      reportProblemBox.style.display = 'none';
+      if (marker) {
+        map.removeLayer(marker);
+        marker = null;
+      }
+      clickedLatLng = null;
+    });
+  </script>
+
+</body>
+</html>
