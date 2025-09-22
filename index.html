@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>City Issue Detector</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    #uploadedImage {
+      margin-top: 15px;
+      max-width: 300px;
+      border: 1px solid #ccc;
+      display: none;
+    }
+    #label-container div {
+      margin: 5px 0;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 15px;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>City Issue Detector</h1>
+  <p>Upload a photo of a garbage dump, broken street light, or pothole:</p>
+
+  <input type="file" id="imageUpload" accept="image/*" />
+  <br>
+  <button id="predictButton">Predict</button>
+  <br><br>
+  <img id="uploadedImage" />
+  <div id="label-container"></div>
+
+  <!-- TensorFlow + Teachable Machine -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+  <script type="text/javascript">
+    // 🔹 Replace this with your GitHub Pages model URL
+    const URL = "https://smitha-angeline2000.github.io/FlagIt/model/";
+
+    let model, labelContainer, maxPredictions, uploadedImg;
+
+    async function init() {
+      const modelURL = URL + "model.json";
+      const metadataURL = URL + "metadata.json";
+
+      model = await tmImage.load(modelURL, metadataURL);
+      maxPredictions = model.getTotalClasses();
+
+      labelContainer = document.getElementById("label-container");
+      labelContainer.innerHTML = "";
+      for (let i = 0; i < maxPredictions; i++) {
+        labelContainer.appendChild(document.createElement("div"));
+      }
+    }
+
+    // File upload handler
+    document.getElementById("imageUpload").addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        uploadedImg = document.getElementById("uploadedImage");
+        uploadedImg.src = URL.createObjectURL(file);
+        uploadedImg.style.display = "block";
+      }
+    });
+
+    // Predict button handler
+    document.getElementById("predictButton").addEventListener("click", async () => {
+      if (!uploadedImg || !uploadedImg.src) {
+        alert("Please upload an image first!");
+        return;
+      }
+
+      const prediction = await model.predict(uploadedImg);
+
+      for (let i = 0; i < prediction.length; i++) {
+        const classPrediction =
+          prediction[i].className + ": " + prediction[i].probability.toFixed(2);
+        labelContainer.childNodes[i].innerHTML = classPrediction;
+      }
+
+      const best = prediction.reduce((prev, current) =>
+        prev.probability > current.probability ? prev : current
+      );
+      console.log("Detected:", best.className, best.probability);
+    });
+
+    // Load model on page load
+    init();
+  </script>
+</body>
+</html>
